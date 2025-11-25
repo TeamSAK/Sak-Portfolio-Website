@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth scroll-pt-24 dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAK DEV | Senior Frontend Engineer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              background: 'var(--bg-color)',
+              surface: 'var(--surface-color)',
+              text: 'var(--text-color)',
+              primary: 'var(--primary-color)',
+              secondary: 'var(--secondary-color)',
+              accent: 'var(--accent-color)',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'scroll': 'scroll 1.5s infinite',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              scroll: {
+                '0%': { transform: 'translateY(0)', opacity: 0 },
+                '50%': { opacity: 1 },
+                '100%': { transform: 'translateY(8px)', opacity: 0 },
+              }
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(to right, #303030 1px, transparent 1px), linear-gradient(to bottom, #303030 1px, transparent 1px)",
+            }
+          },
+        },
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg-color: #f0f4f8;
+        --surface-color: #ffffff;
+        --text-color: #0f172a;
+        
+        /* Default Indigo/Pink Theme */
+        --primary-color: #6366f1; 
+        --secondary-color: #ec4899;
+        --accent-color: #8b5cf6;
+      }
+
+      html.dark {
+        --bg-color: #0B1121; /* Deep rich blue-black */
+        --surface-color: #151e32;
+        --text-color: #f8fafc;
+      }
+
+      body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: var(--bg-color); 
+        color: var(--text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 10px; }
+      ::-webkit-scrollbar-track { background: var(--bg-color); }
+      ::-webkit-scrollbar-thumb { 
+        background: #334155; 
+        border-radius: 5px; 
+        border: 2px solid var(--bg-color);
+      }
+      ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+      /* Grid Pattern Utility */
+      .bg-grid {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(128, 128, 128, 0.05) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(128, 128, 128, 0.05) 1px, transparent 1px);
+      }
+      
+      html.dark .bg-grid {
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      }
+
+      .will-change-transform {
+        will-change: transform;
+      }
+
+      ::selection {
+        background-color: var(--primary-color);
+        color: white;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
