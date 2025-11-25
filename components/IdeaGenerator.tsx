@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, Loader2, Lightbulb, Target, Code2, DollarSign } from 'lucide-react';
-import { generateProjectIdea, ProjectIdea } from '../services/geminiService';
+import { generateProjectIdea, ProjectIdea, GeminiError } from '../services/geminiService';
 import Reveal from './Reveal';
 
 const IdeaGenerator: React.FC = () => {
@@ -24,8 +24,15 @@ const IdeaGenerator: React.FC = () => {
       } else {
         setError("Couldn't spark an idea right now. Try a different topic!");
       }
-    } catch (err) {
-      setError("Something went wrong with the AI service.");
+    } catch (err: any) {
+      console.error(err);
+      if (err instanceof GeminiError && err.code === 'MISSING_API_KEY') {
+        setError("API Key missing. If on Vercel, set 'VITE_API_KEY' in Environment Variables.");
+      } else if (err instanceof GeminiError && err.code === 'RATE_LIMIT') {
+        setError("Too many requests. Please wait a moment.");
+      } else {
+        setError("AI Service unavailable. Check your internet connection.");
+      }
     } finally {
       setLoading(false);
     }
@@ -80,7 +87,12 @@ const IdeaGenerator: React.FC = () => {
               </form>
               
               {error && (
-                <p className="mt-4 text-red-500 font-medium animate-pulse">{error}</p>
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                    <p className="text-red-600 dark:text-red-400 text-sm font-medium animate-pulse flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        {error}
+                    </p>
+                </div>
               )}
             </Reveal>
           </div>

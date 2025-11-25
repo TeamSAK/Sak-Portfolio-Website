@@ -14,6 +14,8 @@ import CTA from './components/CTA';
 import IdeaGenerator from './components/IdeaGenerator';
 import Pricing from './components/Pricing';
 import Clients from './components/Clients';
+import GithubActivity from './components/GithubActivity';
+import LiveFeed from './components/LiveFeed';
 
 // Define color palettes
 const COLORS = [
@@ -60,6 +62,7 @@ const App: React.FC = () => {
         toggleTheme={() => setIsDark(!isDark)}
         cycleColor={cycleColor}
       />
+      <LiveFeed />
       <main>
         <Hero isMuted={isMuted} />
         <About />
@@ -67,6 +70,7 @@ const App: React.FC = () => {
         <Process />
         <Projects />
         <Pricing />
+        <GithubActivity />
         <Clients />
         <Testimonials />
         <IdeaGenerator />

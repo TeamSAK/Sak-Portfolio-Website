@@ -9,29 +9,68 @@ export class GeminiError extends Error {
   }
 }
 
-// Safely access env var, defaulting to empty string if process is undefined (browser env)
-// Wrapped in try-catch to prevent "Uncaught ReferenceError" in strict browser environments
-const getApiKey = () => {
+// Lazy load API key to prevent top-level "Uncaught ReferenceError: process is not defined"
+let cachedApiKey: string | undefined = undefined;
+
+const getApiKey = (): string => {
+  if (cachedApiKey !== undefined) return cachedApiKey;
+  
+  // Initialize key candidate
+  let key: string | undefined = undefined;
+
+  // 1. Try Vite (import.meta.env) - Safe check
   try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.API_KEY || '';
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
     }
   } catch (e) {
-    // Silently fail if process access is blocked
-    return '';
+    // Ignore syntax errors or access errors
   }
+
+  // 2. Try process.env (Node/Webpack/Next.js/CRA) - Safe check
+  if (!key) {
+    try {
+      // Use typeof check to safely access global 'process' without throwing ReferenceError
+      // @ts-ignore
+      if (typeof process !== 'undefined' && process.env) {
+        // @ts-ignore
+        key = process.env.NEXT_PUBLIC_API_KEY || 
+              // @ts-ignore
+              process.env.REACT_APP_API_KEY || 
+              // @ts-ignore
+              process.env.VITE_API_KEY || 
+              // @ts-ignore
+              process.env.API_KEY;
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  if (key) {
+    cachedApiKey = key;
+    return key;
+  }
+
+  // Log a helpful warning for developers only once
+  if (cachedApiKey === undefined) {
+      console.warn("Gemini Service: No API Key found. On Vercel, ensure you set 'VITE_API_KEY' or 'NEXT_PUBLIC_API_KEY' in Environment Variables.");
+  }
+  
+  cachedApiKey = '';
   return '';
 };
-
-const apiKey = getApiKey();
 
 let client: GoogleGenAI | null = null;
 let chatSession: Chat | null = null;
 
 const getClient = () => {
-  if (!client && apiKey) {
+  const key = getApiKey();
+  if (!client && key) {
     try {
-        client = new GoogleGenAI({ apiKey });
+        client = new GoogleGenAI({ apiKey: key });
     } catch (e) {
         console.error("Failed to initialize Gemini client", e);
     }
@@ -40,7 +79,8 @@ const getClient = () => {
 };
 
 export const initializeChat = async (): Promise<void> => {
-  if (!apiKey) {
+  const key = getApiKey();
+  if (!key) {
     console.warn("Gemini API Key is missing. Chat functionality will not work.");
     return;
   }
@@ -63,7 +103,8 @@ export const initializeChat = async (): Promise<void> => {
 };
 
 export const sendMessageToGemini = async (message: string): Promise<string> => {
-  if (!apiKey) {
+  const key = getApiKey();
+  if (!key) {
     throw new GeminiError("API Key is missing", 'MISSING_API_KEY');
   }
   
@@ -72,11 +113,18 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
   }
 
   if (!chatSession) {
-    throw new GeminiError("Failed to initialize chat session", 'CONNECTION_ERROR');
+    // Try one last time to get the client, maybe it initialized late
+    if (getClient()) {
+         await initializeChat();
+    }
+    
+    if (!chatSession) {
+         throw new GeminiError("Failed to initialize chat session", 'CONNECTION_ERROR');
+    }
   }
 
   try {
-    const response = await chatSession.sendMessage({ message });
+    const response = await chatSession!.sendMessage({ message });
     return response.text || "I didn't get a response. Please try again.";
   } catch (error: any) {
     console.error("Error sending message to Gemini:", error);
@@ -104,6 +152,7 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
     // Retry logic for transient errors
     try {
         console.log("Attempting retry...");
+        // Re-init session
         await initializeChat();
         if(chatSession) {
             const retryResponse = await chatSession.sendMessage({ message });
@@ -132,13 +181,16 @@ export interface ProjectIdea {
 }
 
 export const generateProjectIdea = async (industry: string): Promise<ProjectIdea | null> => {
-  if (!apiKey) {
-    console.warn("API Key missing");
-    return null;
+  const key = getApiKey();
+  if (!key) {
+    // Throw specific error so UI can tell user to check Vercel settings
+    throw new GeminiError("API Key is missing", 'MISSING_API_KEY');
   }
 
   const ai = getClient();
-  if (!ai) return null;
+  if (!ai) {
+     throw new GeminiError("Client initialization failed", 'CONNECTION_ERROR');
+  }
 
   try {
     const prompt = `Generate a unique, profitable, and modern SaaS web application idea for the "${industry}" industry. 
@@ -177,8 +229,21 @@ export const generateProjectIdea = async (industry: string): Promise<ProjectIdea
     }
     return null;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating idea:", error);
-    return null;
+    
+    // Bubble up known errors
+    if (error instanceof GeminiError) throw error;
+    
+    // Identify common errors from SDK
+    const msg = error.message?.toLowerCase() || '';
+    if (msg.includes('api key') || error.status === 401) {
+         throw new GeminiError("Invalid API Key", 'INVALID_API_KEY');
+    }
+    if (msg.includes('quota') || msg.includes('429')) {
+         throw new GeminiError("Rate limit exceeded", 'RATE_LIMIT');
+    }
+
+    throw new GeminiError("Failed to generate idea", 'UNKNOWN');
   }
 };

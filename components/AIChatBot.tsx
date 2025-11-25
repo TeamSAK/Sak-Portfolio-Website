@@ -65,10 +65,10 @@ const AIChatBot: React.FC = () => {
       if (error instanceof GeminiError) {
           switch (error.code) {
               case 'MISSING_API_KEY':
-                  errorMessageText = "I'm missing my API key configuration. Please set the API_KEY environment variable to chat with me.";
+                  errorMessageText = "Deployment Error: API Key missing. If this is deployed on Vercel, please add 'VITE_API_KEY' or 'NEXT_PUBLIC_API_KEY' to your Environment Variables in Project Settings.";
                   break;
               case 'INVALID_API_KEY':
-                  errorMessageText = "My authentication configuration is invalid. Please check the API settings.";
+                  errorMessageText = "Authentication failed. The API key configured is invalid.";
                   break;
               case 'RATE_LIMIT':
                   errorMessageText = "I'm receiving too many messages right now. Please wait a moment before sending another.";

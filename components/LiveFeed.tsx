@@ -1,116 +1,107 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCircle, Volume2, VolumeX } from 'lucide-react';
-import { RECENT_ACTIVITIES } from '../constants';
+import { GitCommit, GitPullRequest, Zap, Volume2, VolumeX, X } from 'lucide-react';
 
-interface Activity {
-  id: number;
-  text: string;
-}
+const MOCK_EVENTS = [
+  { icon: GitCommit, text: "Pushed 3 commits to main", color: "text-blue-400" },
+  { icon: Zap, text: "Deployed to production", color: "text-yellow-400" },
+  { icon: GitPullRequest, text: "Merged PR: Feature/AI-Chat", color: "text-purple-400" },
+  { icon: GitCommit, text: "Refactored Hero component", color: "text-green-400" },
+  { icon: Zap, text: "Performance score: 98/100", color: "text-orange-400" },
+];
 
 const LiveFeed: React.FC = () => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [isMuted, setIsMuted] = useState(false);
-  const nextId = useRef(0);
+  const [currentEvent, setCurrentEvent] = useState(MOCK_EVENTS[0]);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMuted, setIsMuted] = useState(false); // Default to unmuted visually, but logic requires user interaction usually
+  const [isClosed, setIsClosed] = useState(false);
 
-  // Sound generation using Web Audio API
-  const playNotificationSound = () => {
+  const playSound = () => {
     if (isMuted) return;
-    
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;
-      
       const ctx = new AudioContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-
+      
       osc.connect(gain);
       gain.connect(ctx.destination);
-
-      // Modern "glass" ping sound
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
-      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1); // A6
       
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-
+      // Subtle "pop" sound
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      
       osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {
-      console.error("Audio playback failed", e);
-    }
+      osc.stop(ctx.currentTime + 0.15);
+    } catch(e) { /* ignore */ }
   };
 
   useEffect(() => {
-    // Initial delay
-    const initialTimer = setTimeout(() => {
-      addActivity();
-    }, 1500);
+    if (isClosed) return;
 
-    const interval = setInterval(() => {
-      addActivity();
-    }, 4000);
+    const showEvent = () => {
+      // Pick random event
+      const event = MOCK_EVENTS[Math.floor(Math.random() * MOCK_EVENTS.length)];
+      setCurrentEvent(event);
+      setIsVisible(true);
+      playSound();
+
+      // Hide after 4 seconds
+      setTimeout(() => {
+        setIsVisible(false);
+      }, 4000);
+    };
+
+    // Initial delay
+    const initialTimer = setTimeout(showEvent, 2000);
+    
+    // Repeat every 10 seconds
+    const interval = setInterval(showEvent, 10000);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [isMuted]); // Re-bind if mute state changes to ensure sound works
+  }, [isClosed, isMuted]);
 
-  const addActivity = () => {
-    const randomActivity = RECENT_ACTIVITIES[Math.floor(Math.random() * RECENT_ACTIVITIES.length)];
-    const newActivity = { id: nextId.current++, text: randomActivity };
-    
-    setActivities(prev => {
-      const updated = [newActivity, ...prev].slice(0, 3); // Keep max 3
-      return updated;
-    });
-
-    playNotificationSound();
-  };
+  if (isClosed) return null;
 
   return (
-    <div className="absolute right-0 top-20 md:top-1/4 w-full max-w-xs p-4 z-30 pointer-events-none">
-      <div className="flex flex-col gap-3 items-end">
-        {/* Controls */}
-        <div className="pointer-events-auto mb-2">
-            <button 
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-2 bg-surface/80 backdrop-blur-md border border-white/10 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                title={isMuted ? "Unmute notifications" : "Mute notifications"}
-            >
-                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
+    <div className="fixed top-24 right-4 z-40 flex flex-col items-end pointer-events-none">
+      <div 
+        className={`pointer-events-auto flex items-center gap-3 bg-surface/90 backdrop-blur-xl border border-gray-200 dark:border-white/10 p-3 pr-8 rounded-xl shadow-2xl transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${
+          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'
+        }`}
+      >
+        <div className={`w-8 h-8 rounded-full bg-background flex items-center justify-center shadow-sm border border-gray-100 dark:border-white/5`}>
+          <currentEvent.icon size={16} className={currentEvent.color} />
         </div>
-
-        {/* Feed Items */}
-        {activities.map((activity) => (
-          <div 
-            key={activity.id}
-            className="pointer-events-auto animate-slide-in-right w-full bg-surface/90 backdrop-blur-lg border border-white/10 p-4 rounded-xl shadow-2xl flex items-start gap-3 transform transition-all hover:scale-105"
-          >
-            <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
-              <CheckCircle size={16} className="text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-white leading-tight">
-                {activity.text}
-              </p>
-              <span className="text-[10px] text-gray-400 mt-1 block">Just now</span>
-            </div>
-          </div>
-        ))}
+        <div>
+           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Live Activity</p>
+           <p className="text-sm font-semibold text-text whitespace-nowrap">{currentEvent.text}</p>
+        </div>
+        
+        {/* Close Button */}
+        <button 
+            onClick={() => setIsClosed(true)}
+            className="absolute top-1 right-1 p-1 text-gray-400 hover:text-red-500 transition-colors"
+        >
+            <X size={12} />
+        </button>
       </div>
-      <style>{`
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(50px) scale(0.9); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        .animate-slide-in-right {
-          animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
+
+      {/* Mute Control Mini */}
+      <button 
+        onClick={() => setIsMuted(!isMuted)}
+        className="pointer-events-auto mt-2 p-2 bg-surface/50 backdrop-blur-md rounded-full text-gray-400 hover:text-text hover:bg-surface border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-all scale-90"
+        title={isMuted ? "Unmute Live Feed" : "Mute Live Feed"}
+      >
+         {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+      </button>
     </div>
   );
 };

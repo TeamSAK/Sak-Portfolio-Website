@@ -39,7 +39,7 @@ const Clients: React.FC = () => {
           observer.disconnect();
         }
       },
-      { threshold: 0.2 } // Trigger when 20% visible
+      { threshold: 0.1 } // Reduced threshold for better mobile triggers
     );
 
     if (sectionRef.current) {
@@ -47,7 +47,7 @@ const Clients: React.FC = () => {
     }
 
     return () => {
-      if (sectionRef.current) observer.disconnect();
+      observer.disconnect();
     };
   }, []);
 
@@ -77,7 +77,7 @@ const Clients: React.FC = () => {
                   style={{
                     animation: isVisible ? 'slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
                     opacity: 0,
-                    animationDelay: `${Math.min(idx * 50, 3000)}ms` // Stagger effect, capped to prevent huge delays
+                    animationDelay: `${Math.min(idx * 50, 2000)}ms`
                   }}
                 >
                     <div className="w-16 h-16 md:w-20 md:h-20 relative transition-all duration-500 transform group-hover/item:-translate-y-3 group-hover/item:scale-110 grayscale opacity-50 group-hover/item:grayscale-0 group-hover/item:opacity-100 will-change-transform">
